@@ -67,7 +67,7 @@
     gap:12px;
     padding:8px 2px;
   }
-  .brand{display:flex;align-items:center;gap:11px;user-select:none;margin-top:5px}
+  .brand{display:flex;align-items:center;gap:11px;user-select:none}
   .brand-badge{
     width:36px;height:36px;border-radius:11px;
     background:var(--accent);
@@ -104,6 +104,10 @@
     border-color:var(--accent);
     color:var(--accent-ink);
   }
+  .icon-btn:disabled{
+    opacity:.35;cursor:not-allowed;box-shadow:none;
+  }
+  .icon-btn:disabled:active{transform:none}
   @keyframes micPulse{
     0%{box-shadow:0 0 0 0 var(--glow)}
     70%{box-shadow:0 0 0 11px transparent}
@@ -198,6 +202,45 @@
 
   [data-theme="light"] .i-moon{display:none}
   [data-theme="dark"] .i-sun{display:none}
+  [data-mode="countdown"] .i-countup{display:none}
+  [data-mode="countup"] .i-countdown{display:none}
+
+  .left-group{display:flex;flex-direction:column;align-items:flex-start;gap:16px}
+  #modeBtn{
+    border-color:var(--accent);
+    background:var(--accent-soft);
+    color:var(--accent);
+  }
+
+  .interval-row{display:flex;align-items:center;gap:6px}
+  body:not([data-mode="countup"]) .interval-row{display:none}
+  .pill-btn{
+    font-family:"Hanken Grotesk",sans-serif;
+    font-weight:600;
+    font-size:.78rem;
+    letter-spacing:.02em;
+    white-space:nowrap;
+    border:1px solid var(--border);
+    background:var(--surface);
+    color:var(--text);
+    border-radius:999px;
+    padding:6px 13px;
+    cursor:pointer;
+    box-shadow:var(--shadow-sm);
+    transition:transform .16s ease,background .2s ease,border-color .2s ease,color .2s ease;
+    touch-action:manipulation;
+  }
+  .pill-btn:active{transform:scale(.94)}
+  .pill-btn.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  @media(hover:hover){
+    .pill-btn:not(.active):hover{border-color:var(--accent);color:var(--accent)}
+  }
+  .interval-drawer{
+    display:flex;align-items:center;gap:6px;
+    max-width:0;overflow:hidden;opacity:0;
+    transition:max-width .3s ease,opacity .2s ease;
+  }
+  .interval-drawer.open{max-width:300px;opacity:1}
 
   /* ---------- Main / timer face ---------- */
   main{
@@ -361,20 +404,40 @@
   })();
 </script>
 </head>
-<body data-state="idle">
+<body data-state="idle" data-mode="countdown">
 
   <div class="toast-wrap" id="toastWrap" aria-live="polite" role="status"></div>
 
   <header>
-    <div class="brand">
-      <span class="brand-badge">
-        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/>
-          <circle cx="12" cy="3" r="1.9" fill="currentColor"/>
-          <path d="M12 12l3.4 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+    <div class="left-group">
+      <div class="brand">
+        <span class="brand-badge">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/>
+            <circle cx="12" cy="3" r="1.9" fill="currentColor"/>
+            <path d="M12 12l3.4 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="brand-name">Epoch</span>
+      </div>
+      <button class="icon-btn" id="modeBtn" aria-pressed="false" aria-label="Switch to stopwatch mode" title="Timer mode">
+        <svg class="i-countdown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 2h14M5 22h14M17 22v-4.17a2 2 0 0 0-.59-1.42L12 12l-4.41 4.41A2 2 0 0 0 7 17.83V22M7 2v4.17a2 2 0 0 0 .59 1.42L12 12l4.41-4.41A2 2 0 0 0 17 6.17V2"/>
         </svg>
-      </span>
-      <span class="brand-name">Epoch</span>
+        <svg class="i-countup" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="14" r="8"/>
+          <path d="M12 10v4l3 2M9 2h6"/>
+        </svg>
+      </button>
+      <div class="interval-row" id="intervalRow">
+        <button class="pill-btn" id="intervalBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Beep interval" title="Beep interval">10s</button>
+        <div class="interval-drawer" id="intervalDrawer">
+          <button class="pill-btn interval-option" type="button" data-sec="5">5s</button>
+          <button class="pill-btn interval-option" type="button" data-sec="10">10s</button>
+          <button class="pill-btn interval-option" type="button" data-sec="30">30s</button>
+          <button class="pill-btn interval-option" type="button" data-sec="60">60s</button>
+        </div>
+      </div>
     </div>
 
     <div class="actions">
@@ -474,6 +537,10 @@
   const startBtn = document.getElementById("startBtn");
   const pauseBtn = document.getElementById("pauseBtn");
   const stopBtn  = document.getElementById("stopBtn");
+  const modeBtn  = document.getElementById("modeBtn");
+  const intervalBtn     = document.getElementById("intervalBtn");
+  const intervalDrawer  = document.getElementById("intervalDrawer");
+  const intervalOptions = Array.from(intervalDrawer.querySelectorAll(".interval-option"));
   const progress = document.getElementById("progress");
   const stage    = document.getElementById("stage");
   const face     = document.getElementById("face");
@@ -484,10 +551,14 @@
   progress.style.strokeDasharray = C;
   progress.style.strokeDashoffset = C; // empty
 
+  let mode    = "countdown";      // countdown | countup
   let state   = "idle";           // idle | running | paused
   let totalMs = 0;
   let endTime = 0;
-  let leftMs  = 0;                // remaining while paused
+  let leftMs  = 0;                // remaining while paused (countdown)
+  let startTime = 0;              // origin instant for the count-up clock
+  let elapsedMs = 0;              // elapsed while paused (count-up)
+  let beepIntervalSec = 10;       // stopwatch beep cadence
   let rafId   = null;
   let lastShownSec = 0;           // last whole second rendered
 
@@ -511,10 +582,40 @@
     progress.style.strokeDashoffset = C * (1 - fraction);
   }
   function refreshStart(){
-    startBtn.disabled = inputSeconds() === 0;
+    startBtn.disabled = mode === "countdown" && inputSeconds() === 0;
   }
   function setReadonly(ro){
     inputs.forEach(({el}) => { el.readOnly = ro; });
+  }
+  function setAppState(next){          // idle | running | paused
+    state = next;
+    body.dataset.state = state;
+    modeBtn.disabled = state !== "idle";  // mode can only change while idle
+  }
+  function setIntervalDrawer(open){
+    intervalDrawer.classList.toggle("open", open);
+    intervalBtn.setAttribute("aria-expanded", String(open));
+  }
+  function setBeepInterval(sec){
+    beepIntervalSec = sec;
+    intervalBtn.textContent = sec + "s";
+    intervalOptions.forEach((btn) => btn.classList.toggle("active", Number(btn.dataset.sec) === sec));
+  }
+  function setMode(next){
+    if (state !== "idle" || next === mode) return;
+    mode = next;
+    body.dataset.mode = mode;
+    modeBtn.setAttribute("aria-pressed", String(mode === "countup"));
+    modeBtn.setAttribute("aria-label", mode === "countup" ? "Switch to timer mode" : "Switch to stopwatch mode");
+    modeBtn.title = mode === "countup" ? "Stopwatch mode" : "Timer mode";
+    setReadonly(mode === "countup");   // count-up always starts from 00:00:00
+    setIntervalDrawer(false);
+    writeDigits(0);
+    setRing(0);
+    refreshStart();
+    showToast(mode === "countup"
+      ? "Switched to Stopwatch mode \u2014 beep every " + beepIntervalSec + "s"
+      : "Switched to Timer mode");
   }
 
   /* ---------- input handling ---------- */
@@ -536,25 +637,39 @@
   /* ---------- timer engine ---------- */
   function tick(){
     const now = performance.now();
-    const remaining = Math.max(0, endTime - now);
-    setRing(totalMs > 0 ? remaining / totalMs : 0);
-    const secs = Math.ceil(remaining / 1000);
-    if (secs !== lastShownSec){
-      lastShownSec = secs;
-      writeDigits(secs);
-      if (secs >= 1 && secs <= 5) playTick();   // final 5-second countdown
+    if (mode === "countdown"){
+      const remaining = Math.max(0, endTime - now);
+      setRing(totalMs > 0 ? remaining / totalMs : 0);
+      const secs = Math.ceil(remaining / 1000);
+      if (secs !== lastShownSec){
+        lastShownSec = secs;
+        writeDigits(secs);
+        if (secs >= 1 && secs <= 5) playTick();   // final 5-second countdown
+      }
+      if (remaining <= 0){ finish(); return; }
+    } else { // countup: ring stays fully lit (set once in start/resume)
+      const secs = Math.floor((now - startTime) / 1000);
+      if (secs !== lastShownSec){
+        lastShownSec = secs;
+        writeDigits(secs);
+        if (secs > 0 && secs % beepIntervalSec === 0) playBeep();   // stopwatch cadence
+      }
     }
-    if (remaining <= 0){ finish(); return; }
     rafId = requestAnimationFrame(tick);
   }
 
   function start(){
-    if (inputSeconds() === 0) return;
-    totalMs = inputSeconds() * 1000;
-    lastShownSec = Math.ceil(totalMs / 1000);
-    endTime = performance.now() + totalMs;
-    state = "running";
-    body.dataset.state = state;
+    if (mode === "countdown"){
+      if (inputSeconds() === 0) return;
+      totalMs = inputSeconds() * 1000;
+      lastShownSec = Math.ceil(totalMs / 1000);
+      endTime = performance.now() + totalMs;
+    } else {
+      lastShownSec = 0;
+      writeDigits(0);
+      startTime = performance.now();
+    }
+    setAppState("running");
     stage.classList.add("is-running");
     progress.classList.add("no-anim");
     face.classList.remove("finished");
@@ -568,10 +683,10 @@
 
   function pause(){
     if (state !== "running") return;
-    leftMs = Math.max(0, endTime - performance.now());
+    if (mode === "countdown") leftMs = Math.max(0, endTime - performance.now());
+    else elapsedMs = performance.now() - startTime;
     cancelAnimationFrame(rafId);
-    state = "paused";
-    body.dataset.state = state;
+    setAppState("paused");
     stage.classList.remove("is-running");
     pauseBtn.textContent = "Resume";
     releaseWake();
@@ -579,10 +694,14 @@
 
   function resume(){
     if (state !== "paused") return;
-    endTime = performance.now() + leftMs;
-    lastShownSec = Math.ceil(leftMs / 1000);
-    state = "running";
-    body.dataset.state = state;
+    if (mode === "countdown"){
+      endTime = performance.now() + leftMs;
+      lastShownSec = Math.ceil(leftMs / 1000);
+    } else {
+      startTime = performance.now() - elapsedMs;
+      lastShownSec = Math.floor(elapsedMs / 1000);
+    }
+    setAppState("running");
     stage.classList.add("is-running");
     pauseBtn.textContent = "Pause";
     playStart();
@@ -592,14 +711,13 @@
 
   function reset(){ // back to idle, default 00:00:00
     cancelAnimationFrame(rafId);
-    state = "idle";
-    body.dataset.state = state;
+    setAppState("idle");
     stage.classList.remove("is-running");
     face.classList.remove("finished");
     pauseBtn.textContent = "Pause";
     progress.classList.remove("no-anim");
-    setReadonly(false);
-    totalMs = 0; leftMs = 0;
+    setReadonly(mode === "countup");   // count-up display stays read-only
+    totalMs = 0; leftMs = 0; startTime = 0; elapsedMs = 0;
     writeDigits(0);
     setRing(0);
     refreshStart();
@@ -654,6 +772,10 @@
     tone(659.25, 0.50, 0.00, 0.16, "sine");   // E5
     tone(830.61, 0.50, 0.16, 0.16, "sine");   // G#5
     tone(987.77, 0.55, 0.32, 0.16, "sine");   // B5
+  }
+  function playBeep(){            // stopwatch cadence \u2014 sharp double beep, cuts through noise
+    tone(1108.73, 0.11, 0.00, 0.24, "square");  // C#6
+    tone(1108.73, 0.11, 0.16, 0.24, "square");  // C#6 again
   }
 
   /* ---------- toast ---------- */
@@ -795,6 +917,23 @@
   function setTime(sec){ writeDigits(sec); refreshStart(); }
 
   function handleCommand(cmd){
+    if (/\bswitch\b/.test(cmd)){
+      if (/\bstopwatch\b/.test(cmd)){
+        if (mode === "countup"){ logLine("switch ignored (already stopwatch)", "sys"); showToast("Already in stopwatch mode"); return; }
+        if (state !== "idle"){ logLine("switch ignored (timer active)", "sys"); showToast("Stop the timer before switching modes"); return; }
+        logLine("\u2192 switch to stopwatch", "cmd"); setMode("countup");
+        return;
+      }
+      if (/\btimer\b/.test(cmd)){
+        if (mode === "countdown"){ logLine("switch ignored (already timer)", "sys"); showToast("Already in timer mode"); return; }
+        if (state !== "idle"){ logLine("switch ignored (timer active)", "sys"); showToast("Stop the timer before switching modes"); return; }
+        logLine("\u2192 switch to timer", "cmd"); setMode("countdown");
+        return;
+      }
+      logLine("switch command not understood", "err");
+      showToast("Say \u201cEpoch switch timer\u201d or \u201cEpoch switch stopwatch\u201d");
+      return;
+    }
     if (/\b(stop|reset|cancel)\b/.test(cmd)){
       logLine("\u2192 stop", "cmd"); reset(); showToast("Timer stopped"); return;
     }
@@ -811,6 +950,7 @@
     if (/\b(start|begin|go)\b/.test(cmd)){
       if (state === "paused"){ logLine("\u2192 resume", "cmd"); resume(); showToast("Resumed"); return; }
       if (state === "running"){ logLine("start ignored (already running)", "sys"); showToast("Already running"); return; }
+      if (mode === "countup"){ logLine("\u2192 start (stopwatch)", "cmd"); start(); return; }
       const dur = parseDuration(cmd);
       if (dur && dur > 0){ logLine("\u2192 set " + fmtDur(dur) + " + start", "cmd"); setTime(dur); }
       else logLine("\u2192 start (current time)", "cmd");
@@ -819,6 +959,7 @@
       return;
     }
     if (/\bset\b/.test(cmd)){
+      if (mode === "countup"){ logLine("set ignored (stopwatch has no fixed duration)", "sys"); showToast("Stopwatch starts from 00:00:00 \u2014 switch to timer mode to set a time"); return; }
       if (state !== "idle"){ logLine("set ignored (timer active)", "sys"); showToast("Stop the timer before setting a new one"); return; }
       const dur = parseDuration(cmd);
       if (dur && dur > 0){ logLine("\u2192 set " + fmtDur(dur), "cmd"); setTime(dur); showToast("Set \u00b7 " + fmtDur(dur)); }
@@ -950,6 +1091,22 @@
   startBtn.addEventListener("click", start);
   pauseBtn.addEventListener("click", () => { state === "running" ? pause() : resume(); });
   stopBtn.addEventListener("click", reset);
+  modeBtn.addEventListener("click", () => setMode(mode === "countdown" ? "countup" : "countdown"));
+
+  /* ---------- beep interval drawer ---------- */
+  setBeepInterval(beepIntervalSec);
+  intervalBtn.addEventListener("click", () => setIntervalDrawer(!intervalDrawer.classList.contains("open")));
+  intervalOptions.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      setBeepInterval(Number(btn.dataset.sec));
+      setIntervalDrawer(false);
+      showToast("Beep every " + beepIntervalSec + "s");
+    });
+  });
+  document.addEventListener("click", (e) => {
+    if (!intervalDrawer.classList.contains("open")) return;
+    if (!intervalBtn.contains(e.target) && !intervalDrawer.contains(e.target)) setIntervalDrawer(false);
+  });
 
   /* ---------- theme (persisted in localStorage; default = system) ---------- */
   const THEME_KEY = "epoch-theme";
