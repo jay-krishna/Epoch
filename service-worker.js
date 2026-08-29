@@ -1,6 +1,6 @@
 /* Epoch service worker
  * Bump CACHE when you ship changes so clients pick them up. */
-const CACHE = "epoch-v1";
+const CACHE = "epoch-v2";
 
 const ASSETS = [
   "./",
@@ -42,7 +42,7 @@ self.addEventListener("fetch", (event) => {
       fetch(req)
         .then((res) => {
           const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put("./index.html", copy)).catch(() => {});
+          caches.open(CACHE).then((c) => c.put("./index.html", copy)).catch(() => { });
           return res;
         })
         .catch(() => caches.match("./index.html").then((r) => r || caches.match("./")))
@@ -58,7 +58,7 @@ self.addEventListener("fetch", (event) => {
         cached ||
         fetch(req).then((res) => {
           const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+          caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => { });
           return res;
         }).catch(() => cached)
       )
